@@ -1,0 +1,116 @@
+import sys
+import os
+import numpy as np
+import pandas as pd
+import phydrus as ps
+from pyswmm import Simulation,LidControls, LidGroups, LidUnit, Subcatchments, Nodes
+from swmm_api import read_inp_file, SwmmInput
+from swmm_api.input_file import read_inp_file, SwmmInput, section_labels as sections
+filename = "F:\Krushil\Project\python\inp\BEGH_hydrus.inp"
+
+def getDdDt(inflow,infil,depth_old,alpha,power):
+    DdDt = inflow - infil - alpha*(depth_old**power)
+    return DdDt
+
+def rkck(x,y,h):
+    ak1 = getDydx(x,y)
+    # step-1
+    ytemp = y + b['2'][1]*h*ak1
+    
+    # step-2
+    ak2 = getDydx(x+a[2]*h,ytemp)
+    ytemp = y + h*(b['3'][1]*ak1 + b['3'][2]*ak2)
+    
+    # step-3
+    ak3 = getDydx(x+a[3]*h,ytemp)
+    ytemp = y + h*(b['4'][1]*ak1 + b['4'][2]*ak2 + b['4'][3]*ak3)
+                   
+    #step-4
+    ak4 = getDydx(x+a[4]*h,ytemp)
+    ytemp = y + h*(b['5'][1]*ak1 + b['5'][2]*ak2 + b['5'][3]*ak3 + b['5'][4]*ak4)
+                   
+    #step-5
+    ak5 = getDydx(x+a[5]*h,ytemp)
+    ytemp = y + h*(b['6'][1]*ak1 + b['6'][2]*ak2 + b['6'][3]*ak3 +b['6'][4]*ak4 + b['6'][5]*ak5)
+    
+    #step-6
+    ak6 = getDydx(x+a[6]*h,ytemp)
+    ytemp = y + (c[1]*ak1 + c[3]*ak3 + c[4]*ak4 + c[6]*ak6)*h
+    
+    #step-7
+    yerror = h*(dc[1]*ak1 + dc[3]*ak3 + dc[4]*ak4 + dc[5]*ak5 + dc[6]*ak6
+    
+    return ytemp
+
+def rkck(x,y,h):
+    ak1 = getDydx(x,y)
+    # step-1
+    ytemp = y + b['2'][1]*h*ak1
+    
+    # step-2
+    ak2 = getDydx(x+a[2]*h,ytemp)
+    ytemp = y + h*(b['3'][1]*ak1 + b['3'][2]*ak2)
+    
+    # step-3
+    ak3 = getDydx(x+a[3]*h,ytemp)
+    ytemp = y + h*(b['4'][1]*ak1 + b['4'][2]*ak2 + b['4'][3]*ak3)
+                   
+    #step-4
+    ak4 = getDydx(x+a[4]*h,ytemp)
+    ytemp = y + h*(b['5'][1]*ak1 + b['5'][2]*ak2 + b['5'][3]*ak3 + b['5'][4]*ak4)
+                   
+    #step-5
+    ak5 = getDydx(x+a[5]*h,ytemp)
+    ytemp = y + h*(b['6'][1]*ak1 + b['6'][2]*ak2 + b['6'][3]*ak3 +b['6'][4]*ak4 + b['6'][5]*ak5)
+    
+    #step-6
+    ak6 = getDydx(x+a[6]*h,ytemp)
+    ytemp = y + (c[1]*ak1 + c[3]*ak3 + c[4]*ak4 + c[6]*ak6)*h
+    
+    #step-7
+    yerror = h*(dc[1]*ak1 + dc[3]*ak3 + dc[4]*ak4 + dc[5]*ak5 + dc[6]*ak6)
+    
+    return ytemp,yerror
+
+def rkqs(x,y,htry):
+    yscal = abs(y) + abs(htry*x) + TINY
+    h = htry
+    [ytemp,yerr] = rkck(x,y,h)
+    #compute scaled maximum error
+    errmax = max(0,abs(yerr/yscal))
+    errmax = errmax/10**-6
+    if errmax > 1:
+        while errmax > 1:
+            htemp = SAFETY*h*(errmax**PSHRNK)
+            if htemp < 0.1*h:
+                h = 0.1*h
+            else:
+                h = htemp
+            
+            [ytemp,yerr] = rkck(x,y,h)
+            errmax = max(0,abs(yerr/yscal))
+            errmax = errmax/10**-6
+        x = x + h
+        y = ytemp
+        hnext = h
+
+    else:
+        if errmax > ERRCON:
+            hnext = SAFETY*h*(errmax**PGROW)
+        else:
+            hnext = 5*h
+        x = x + h
+        y = ytemp
+    return x,y,h,hnext
+
+def odesolve_integrate(x1,x2,yinitial,h):
+    x = x1
+    hnext = h
+    y = yinitial
+    for j in range(1,10000,1):
+        if (x+h-x2)*(x+h-x1)>0:
+            hnext = x2-x
+        [x,y,h,hnext] = rkqs(x,y,hnext)
+        if (x-x2)*(x2-x1)>=0:
+            y = y
+    return y

@@ -1,0 +1,58 @@
+import sys
+import os
+import numpy as np
+import pandas as pd
+from pyswmm import Simulation,LidControls, LidGroups, LidUnit
+from geneticalgorithm import geneticalgorithm as ga
+path_obs = ''
+os.chdir(path_obs)
+Obs = pd.read_csv('',header= None)
+Obs=Obs[0].values
+Obs = pd.to_numeric(Obs[1:])
+Duration1 = np.arange(1, len(Obs)+1, 1).tolist()
+def fitness_function(x):
+    z = x.astype(np.float64)
+    for y in z:
+        a = z[0]
+    with Simulation('') as sim:
+        sim.step_advance(600)
+        lid_unit = LidGroups(sim)["SC1"]
+        lid_controls= LidControls(sim)["IB1"]
+        firstunit = lid_unit[0]
+        lid_controls.storage.k_saturated = a
+        firstunit.from_impervious = 20
+        NSE = 0
+        sim_1 = []
+        Sim = []
+        sum_1 = 0
+        obs_sim = 0
+        obs_sum = 0
+        obs_sim_squared = 0
+        obs_avgobs= 0
+        obs_avgobs_squared = 0
+        for step in sim:
+            sim_1.append((firstunit.surface.infiltration)/60)
+        for i in sim_1:
+            sum_1 += i
+            Sim.append(sum_1)
+        Duration2 = np.arange(10, (len(Sim)+1)*10, 10).tolist()
+        index1 = pd.Index(Duration2)
+        index2 = pd.Index(Duration1)
+        Sim_data = pd.Series(Sim,index= index1)
+        Obs_data = pd.Series(Obs,index = index2)
+        Duration3 = index1.intersection(index2)
+        for d in Duration3:
+            obs_sim = Obs_data[d]-Sim_data[d]
+            obs_sum += Obs_data[d]
+            obs_sim_squared += obs_sim**2
+        for d in Duration3:
+            obs_avgobs = Obs_data[d]- ((obs_sum)/len(Duration3))
+            obs_avgobs_squared += obs_avgobs**2
+        NSE = 1-((obs_sim_squared)/(obs_avgobs_squared))
+        if NSE<0:
+            FUNC = 1000
+        else:
+            FUNC = 1/NSE
+        NSE_LIST.append(NSE)
+        print(max(NSE_LIST))
+    return FUNC

@@ -1,0 +1,68 @@
+import os
+import pandas as pd
+import numpy as np
+from pydsstools.heclib.dss import HecDss
+from pydsstools.heclib.dss.HecDss import Open
+import matplotlib.pyplot as plt
+import numpy as np
+from datetime import datetime
+from pydsstools.heclib.dss import HecDss
+from pydsstools.core import TimeSeriesContainer,UNDEFINED
+
+dss_file_1 = ""
+dss_file_2 = ""
+dss_file_3 = ""
+pathname_2 = ""
+# Reading the data from existing DSS file
+for j in a:
+    for i in path_list_1:
+        pathname_1 = i
+        print(j,i)
+    # Reading the data from existing DSS file
+    
+        fid = HecDss.Open(dss_file_1)
+        ts = fid.read_ts(pathname_1,trim_missing=True)
+        numberValues = ts.numberValues
+        pathname = ts.pathname
+        startDateTime = ts.startDateTime
+        unit = ts.units
+        typeofvalues =  ts.type
+        interval = ts.interval
+        values = ts.values
+        fid.close()
+        #rs['Rainfall'] = values
+    # Writing the data to existing DSS file
+    
+        tsc = TimeSeriesContainer()
+        tsc.pathname = pathname_1
+        tsc.startDateTime = startDateTime
+        tsc.numberValues = numberValues
+        tsc.units = unit
+        tsc.type = typeofvalues
+        tsc.interval = interval
+        tsc.values = values+j*10
+        fid = HecDss.Open(dss_file_2)
+    #fid.deletePathname(tsc.pathname)
+        fid.put_ts(tsc)
+        ts = fid.read_ts(pathname_1)
+        fid.close()
+        #rs['Rainfall'+ str(i) + str(j)] = tsc.values
+ 
+    
+# Computing the results
+
+    os.system("script.bat")
+    
+# Reading the output results
+
+    fid = HecDss.Open(dss_file_3)
+    ts = fid.read_ts(pathname_2,trim_missing=True)
+    numberValues = ts.numberValues
+    pathname = ts.pathname
+    startDateTime = ts.startDateTime
+    unit = ts.units
+    typeofvalues =  ts.type
+    interval = ts.interval
+    values = ts.values
+    fid.close()
+    fs['outlet'+ str(j)] = values
